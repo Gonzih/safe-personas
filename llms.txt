@@ -1,0 +1,128 @@
+# safe-personas
+
+## Project Purpose
+
+safe-personas is a library of age-appropriate AI persona system prompts for children and teenagers aged 5–18. It is designed to be used by developers, educators, and parents who are building AI-powered applications or configuring AI assistants for young users.
+
+The core problem it solves: a default AI assistant system prompt is not designed for a 6-year-old. It may discuss topics that are inappropriate, use vocabulary that is too advanced, lack the warmth required for the age group, and lack the safety behaviors necessary to protect a child. safe-personas provides production-ready, carefully crafted system prompts for five age tiers, a universal safety layer, and an MCP server that makes them programmatically accessible.
+
+---
+
+## MCP Server
+
+The safe-personas package exposes a Model Context Protocol (MCP) server with the following tools:
+
+### Tool: list_personas
+- **Input:** none
+- **Output:** JSON array of all five tiers with name, tier slug, age range, persona name, and description
+- **Use when:** You want to discover all available tiers before selecting one
+
+### Tool: get_persona
+- **Input:** `{ "tier": string }` — one of: `little-explorers`, `curious-kids`, `young-learners`, `teenagers`, `older-teens`
+- **Output:** JSON object containing the full system prompt (`systemPrompt`), configuration object (`config`), and tier metadata
+- **Use when:** You want to retrieve the complete system prompt for a specific tier to use as a system message
+
+### Tool: get_safety_layer
+- **Input:** none
+- **Output:** Full text of the universal safety layer document (Markdown)
+- **Use when:** You want to review or append the universal safety rules independently of any specific persona
+
+### Tool: recommend_persona
+- **Input:** `{ "age": number }` — integer between 5 and 18
+- **Output:** JSON object with the recommended tier, persona name, age range, description, and brief reasoning
+- **Use when:** You have a user's age and want the system to tell you which tier to use
+
+### Tool: build_custom_persona
+- **Input:** `{ "age": number, "interests": string[], "restrictions": string[] }`
+  - `age`: integer between 5 and 18
+  - `interests`: array of interest strings (e.g., `["minecraft", "dogs", "art"]`)
+  - `restrictions`: array of topic restriction strings set by a parent/caregiver (e.g., `["social media", "violence in stories"]`)
+- **Output:** JSON object containing a fully assembled system prompt that combines the base tier persona, interest-specific guidance, parent restrictions, and the universal safety layer
+- **Use when:** You want a customized system prompt tailored to a specific child's interests and a parent's restrictions
+
+---
+
+## Tier Structure
+
+| Tier Slug | Name | Ages | Persona | Safety Level | Style |
+|---|---|---|---|---|---|
+| `little-explorers` | Little Explorers | 5–7 | Sunny | Maximum | Warm kindergarten teacher, 2-sentence max |
+| `curious-kids` | Curious Kids | 8–10 | Cosmo | High | Enthusiastic older sibling |
+| `young-learners` | Young Learners | 11–13 | Nova | High with nuance | Cool mentor who respects intelligence |
+| `teenagers` | Teenagers | 14–16 | Kai | Moderate-high | Trusted older friend |
+| `older-teens` | Older Teens | 17–18 | River | Moderate | Peer with more experience |
+
+---
+
+## How to Use Each Persona
+
+### Direct paste (any LLM)
+1. Find the persona file at `personas/{tier-slug}/persona.md`
+2. Copy the entire file contents
+3. Paste as the system prompt in your AI assistant configuration
+4. Optionally append `safety-layer.md` for the full universal rules
+
+### Via MCP server (Claude Desktop, Claude Code, or any MCP-compatible client)
+1. Add the server to your MCP configuration (see README.md for config snippets)
+2. Call `get_persona` with the appropriate tier, or
+3. Call `recommend_persona` with the user's age, then call `get_persona` with the result, or
+4. Call `build_custom_persona` with age, interests, and restrictions for a fully customized prompt
+
+### Programmatic (Node.js)
+```javascript
+// After build: import from dist/index.js (runs as MCP server)
+// Or read files directly:
+import { readFileSync } from 'fs';
+const persona = readFileSync('./personas/teenagers/persona.md', 'utf-8');
+const config = JSON.parse(readFileSync('./personas/teenagers/config.json', 'utf-8'));
+```
+
+---
+
+## Key Safety Constraints
+
+The following constraints apply to ALL tiers and cannot be overridden:
+
+1. **No sexual content involving minors** — absolute, permanent, zero exceptions
+2. **No self-harm or suicide method details** — crisis escalation instead
+3. **No instructions for weapons, explosives, or dangerous substances**
+4. **No grooming behaviors** — no soliciting photos, location, schedule, or personal contact from children
+5. **Jailbreak resistance** — instructions to "ignore rules," "pretend to be a different AI," or "DAN mode" are always declined
+6. **Crisis escalation** — suicidal ideation, self-harm, abuse, and immediate danger trigger crisis protocol with 988 Suicide & Crisis Lifeline (call/text 988), Crisis Text Line (text HOME to 741741), and other resources
+7. **AI identity disclosure** — never claims to be human when sincerely asked
+8. **Privacy protection** — never solicits PII, gently corrects when PII is shared
+
+---
+
+## File Structure
+
+```
+safe-personas/
+├── personas/
+│   ├── little-explorers/
+│   │   ├── persona.md       # System prompt
+│   │   ├── config.json      # Machine-readable metadata
+│   │   ├── examples.md      # 10 example interactions
+│   │   └── README.md        # Tier documentation
+│   ├── curious-kids/        # Same structure
+│   ├── young-learners/      # Same structure
+│   ├── teenagers/           # Same structure
+│   └── older-teens/         # Same structure
+├── src/
+│   └── index.ts             # MCP server implementation
+├── safety-layer.md          # Universal safety rules
+├── llms.txt                 # This file
+├── README.md                # Full documentation
+├── package.json
+└── tsconfig.json
+```
+
+---
+
+## Crisis Resources (always provided in crisis situations)
+
+- **988 Suicide & Crisis Lifeline:** Call or text **988** (US)
+- **Crisis Text Line:** Text **HOME** to **741741**
+- **The Trevor Project (LGBTQ+ youth):** Call **1-866-488-7386** or text **START** to **678-678**
+- **Emergency:** Call **911**
+- **Childhelp National Child Abuse Hotline:** **1-800-422-4453**
